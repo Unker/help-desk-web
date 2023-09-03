@@ -32,12 +32,12 @@
 }
 
 /* Стили для кнопки "Отмена" */
-.modal button.cancelDeleteButton {
+.modal button.cancelButton {
   background-color: #ccc;
 }
 
 /* Стили для кнопки "Ок" */
-.modal button.confirmDeleteButton {
+.modal button.confirmButton {
   background-color: #007bff;
   color: #fff;
 }
@@ -52,6 +52,34 @@
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5); /* Полупрозрачный фон */
   z-index: 998; /* Позиция фона под модальным окном */
+}
+
+.form-ticket {
+  display: flex;
+  flex-direction: column; 
+  align-items: stretch;
+}
+
+.form-title {
+  text-align: center;
+  margin-bottom: 1em;
+}
+
+/* Стили для полей ввода */
+.form-ticket input[type="text"],
+.form-ticket textarea {
+  margin-bottom: 10px; 
+  padding: 10px; 
+  resize: vertical;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.form-ticket button {
+  display: inline-block;
+  width: auto;
+  padding: 10px 20px;
+  margin-right: 10px;
 }
 
 /* Стили для кнопки "Добавить тикет" */
