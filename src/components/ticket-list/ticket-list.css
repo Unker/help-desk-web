@@ -82,6 +82,16 @@
   margin-right: 10px;
 }
 
+.ticket-item .ticket-description {
+  display: block;
+  margin-top: 10px;
+}
+
+.ticket-created {
+  margin-right: 10px;
+  margin-left: auto;
+}
+
 /* Стили для кнопки "Добавить тикет" */
 .addTicketButton {
   position: absolute; /* Позиционируем абсолютно относительно родительского элемента */
@@ -147,7 +157,7 @@
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  margin-left: auto; /* Прижимаем вправо */
+  margin-left: 10px; /* Прижимаем вправо */
 }
 
 /* Стили для кнопки удаления */

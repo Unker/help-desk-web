@@ -45,35 +45,100 @@ export default class TicketList {
     this.tickets.forEach((ticket, index) => {
       const ticketItem = document.createElement('div');
       ticketItem.classList.add('ticket-item');
+      ticketItem.setAttribute('data-index', index);
+      this.onClickTicket = this.onClickTicket.bind(this);
+      ticketItem.addEventListener('click', this.onClickTicket);
 
       const statusCheckbox = document.createElement('input');
       statusCheckbox.type = 'checkbox';
+      statusCheckbox.classList.add('status-checkbox');
       statusCheckbox.checked = ticket.status;
-      statusCheckbox.setAttribute('data-index', index);
-      statusCheckbox.addEventListener('change', () => updateStatus(index));
+      // statusCheckbox.setAttribute('data-index', index);
+      // statusCheckbox.addEventListener('change', () => updateStatus(index));
       ticketItem.appendChild(statusCheckbox);
 
       const nameSpan = document.createElement('span');
       nameSpan.textContent = ticket.name;
       ticketItem.appendChild(nameSpan);
 
+      const dateSpan = document.createElement('span');
+      dateSpan.classList.add('ticket-created');
+      const date = new Date(ticket.created);
+      console.log(date)
+      // dateSpan.textContent = date.format('dd.mm.yyyy h:m');
+      // dateSpan.textContent = date.toISOString().split('T')[0]
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0'); // Месяцы начинаются с 0
+      const year = String(date.getFullYear()).slice(-2); // Получаем последние две цифры года
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+  
+      dateSpan.textContent = `${day}.${month}.${year} ${hours}:${minutes}`;
+      ticketItem.appendChild(dateSpan);
+
       const editButton = document.createElement('button');
       editButton.textContent = '✎';
       editButton.classList.add('edit-button');
-      editButton.setAttribute('data-index', index);
-      editButton.addEventListener('click', () => editTicket(index));
+      // editButton.setAttribute('data-index', index);
+      // editButton.addEventListener('click', () => editTicket(index));
       ticketItem.appendChild(editButton);
 
       const deleteButton = document.createElement('button');
       deleteButton.textContent = 'x';
       deleteButton.classList.add('delete-button');
-      deleteButton.setAttribute('data-index', index);
-      this.openDeleteModal = this.openDeleteModal.bind(this);
-      deleteButton.addEventListener('click', this.openDeleteModal);
+      // deleteButton.setAttribute('data-index', index);
+      // this.openDeleteModal = this.openDeleteModal.bind(this);
+      // deleteButton.addEventListener('click', this.openDeleteModal);
       ticketItem.appendChild(deleteButton);
+
+      if (ticket.description) {
+        const descriptionSpan = document.createElement('span');
+        descriptionSpan.classList.add('ticket-description');
+        descriptionSpan.textContent = ticket.description;
+        ticketItem.appendChild(descriptionSpan);
+      }
 
       this.ticketList.appendChild(ticketItem);
     });
+  }
+
+  async onClickTicket(e) {
+    e.preventDefault()
+    const { target } = e;
+    const ticket = target.closest('.ticket-item');
+    const index = ticket.getAttribute('data-index');
+    console.log(target);
+
+    if (target === ticket) {
+      // получить подробную информацию о тикете
+      console.log('GET All for', index);
+      const { id } = this.tickets[index];
+      try {
+        const response = await fetch(`${this.url}/?method=ticketById&id=${id}`, {
+          method: 'GET'
+        });
+        if (!response.ok) {
+          throw new Error('Failed to get ticket');
+        }
+        this.tickets[index] = await response.json();
+        console.log(this.tickets)
+        this.displayTickets();
+      } catch (error) {
+        console.error(error);
+      }
+      this.closeModals();
+
+    } else if (target.classList.contains('status-checkbox')) {
+      // изменить стату тикета
+      console.log('POST status', index);
+    } else if (target.classList.contains('edit-button')) {
+      // изменить содержимое тикета
+      console.log('open modal edit for', index);
+    } else if (target.classList.contains('delete-button')) {
+      // удалить тикет
+      console.log('open modal delete for', index);
+      this.openDeleteModal(index);
+    }
   }
 
   openAddTicketModal() {
@@ -83,8 +148,9 @@ export default class TicketList {
     this.modalBackground.style.display = 'block';
   }
 
-  openDeleteModal(e) {
-    this.indexSelectedTicket = e.target.getAttribute('data-index')
+  openDeleteModal(index) {
+    // console.log();
+    this.indexSelectedTicket = index; //e.target.getAttribute('data-index')
     this.deleteModal.style.display = 'block';
     this.modalBackground.style.display = 'block';
   }
