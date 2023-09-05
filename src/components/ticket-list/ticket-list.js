@@ -129,27 +129,23 @@ export default class TicketList {
 
   async getTicketDescription(ticket) {
     const index = ticket.getAttribute('data-index');
-    const descriptionElem = ticket.querySelector('.ticket-description');
-    // если уже отображен, то прячем описание
-    if (descriptionElem && descriptionElem.style.display !== 'none') {
-      descriptionElem.style.display = 'none'
-    } else {
-      // получить подробную информацию о тикете
-      const { id } = this.tickets[index];
-      try {
-        const response = await fetch(`${this.url}/?method=ticketById&id=${id}`, {
-          method: 'GET'
-        });
-        if (!response.ok) {
-          throw new Error('Failed to get ticket');
-        }
-        return response.json();
 
-      } catch (error) {
-        console.error(error);
+    // получить подробную информацию о тикете
+    const { id } = this.tickets[index];
+    try {
+      const response = await fetch(`${this.url}/?method=ticketById&id=${id}`, {
+        method: 'GET'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to get ticket');
       }
-      this.closeModals();
+      return response.json();
+
+    } catch (error) {
+      console.error(error);
     }
+    this.closeModals();
+
   }
 
   async onClickTicket(e) {
@@ -171,8 +167,16 @@ export default class TicketList {
     } else {
       // читаем полное описание тикета и отображаем
       const ticketFull = await this.getTicketDescription(ticket);
-      this.tickets[index] = ticketFull;
-      this.displayTickets();
+      if (ticketFull) {
+        this.tickets[index] = ticketFull;
+        const descriptionElem = ticket.querySelector('.ticket-description');
+        // если уже отображен, то прячем описание
+        if (descriptionElem && descriptionElem.style.display !== 'none') {
+          descriptionElem.style.display = 'none'
+        } else {
+          this.displayTickets();
+        }
+      }
     }
   }
 
@@ -181,6 +185,16 @@ export default class TicketList {
     title.textContent = 'Добавить тикет';
     this.ticketModal.style.display = 'block';
     this.modalBackground.style.display = 'block';
+
+    const nameElem = this.ticketModal.querySelector('.form-input-name');
+    const descriptionElem = this.ticketModal.querySelector('.form-input-description');
+
+    nameElem.value = '';
+    descriptionElem.value = '';
+
+    // форсируем изменение поля textarea по содержимому
+    let event = new Event("input");
+    descriptionElem.dispatchEvent(event);
   }
 
   async openEditTicketModal(ticket) {
@@ -189,7 +203,7 @@ export default class TicketList {
     const title = this.ticketModal.querySelector('.form-title');
 
     // прознак редактирования тикета
-    this.ticketModal.setAttribute('data-index', index);;
+    this.ticketModal.setAttribute('data-index', index);
 
     // прочитаем полную информацию о тикете
     const ticketFull = await this.getTicketDescription(ticket);
@@ -200,7 +214,7 @@ export default class TicketList {
     const descriptionElem = this.ticketModal.querySelector('.form-input-description');
 
     nameElem.value = ticketFull.name;
-    descriptionElem.textContent = ticketFull.description;
+    descriptionElem.value = ticketFull.description;
 
     // отображаем форму
     this.ticketModal.style.display = 'block';
@@ -240,6 +254,8 @@ export default class TicketList {
     this.ticketModal.style.display = 'none';
     this.modalBackground.style.display = 'none';
     this.indexSelectedTicket = undefined;
+
+    this.ticketModal.removeAttribute('data-index');
   }
 
   async postTicket(formData) {
@@ -285,6 +301,7 @@ export default class TicketList {
     // Создаем элементы формы
     const form = document.createElement('form');
     form.classList.add('form-ticket');
+    form.setAttribute('onsubmit', 'event.preventDefault()');
 
     const titleLabel = document.createElement('label');
     titleLabel.classList.add('form-title');
@@ -339,8 +356,8 @@ export default class TicketList {
     });
 
     okButton.addEventListener('click', async (e) => {
+      e.preventDefault();
       if (form.checkValidity()) {
-        e.preventDefault();
 
         const formData = {
           name: nameInput.value,
