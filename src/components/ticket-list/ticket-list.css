@@ -73,6 +73,7 @@
   resize: vertical;
   box-sizing: border-box;
   width: 100%;
+  max-height: 200px;
 }
 
 .form-ticket button {

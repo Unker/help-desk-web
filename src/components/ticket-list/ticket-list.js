@@ -28,7 +28,7 @@ export default class TicketList {
 
   async loadTickets() {
     try {
-      const response = await fetch('http://localhost:3000/?method=allTickets');
+      const response = await fetch(`${this.url}/?method=allTickets`);
       if (!response.ok) {
         throw new Error('Failed to load tickets');
       }
@@ -102,66 +102,77 @@ export default class TicketList {
     });
   }
 
+  // изменить стату тикета
+  async patchTicketStatus(ticket) {
+    const index = ticket.getAttribute('data-index');
+    const { id } = this.tickets[index];
+      
+    try {
+      const response = await fetch(`${this.url}/?method=editTicket&id=${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json', 
+        },
+        body: JSON.stringify({
+          status: !this.tickets[index].status,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to create ticket');
+      }
+      // считаем и отобразим обновленные тикеты
+      this.loadTickets();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async getTicketDescription(ticket) {
+    const index = ticket.getAttribute('data-index');
+    const descriptionElem = ticket.querySelector('.ticket-description');
+    // если уже отображен, то прячем описание
+    if (descriptionElem && descriptionElem.style.display !== 'none') {
+      descriptionElem.style.display = 'none'
+    } else {
+      // получить подробную информацию о тикете
+      const { id } = this.tickets[index];
+      try {
+        const response = await fetch(`${this.url}/?method=ticketById&id=${id}`, {
+          method: 'GET'
+        });
+        if (!response.ok) {
+          throw new Error('Failed to get ticket');
+        }
+        return response.json();
+
+      } catch (error) {
+        console.error(error);
+      }
+      this.closeModals();
+    }
+  }
+
   async onClickTicket(e) {
     e.preventDefault()
     const { target } = e;
     const ticket = target.closest('.ticket-item');
     const index = ticket.getAttribute('data-index');
-    console.log(target);
 
     if (target.classList.contains('status-checkbox')) {
-      // изменить стату тикета
-      const { id } = this.tickets[index];
-      
-      try {
-        const response = await fetch(`${this.url}/?method=editTicket&id=${id}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json', 
-          },
-          body: JSON.stringify({
-            status: !this.tickets[index].status,
-          }),
-        });
-        if (!response.ok) {
-          throw new Error('Failed to create ticket');
-        }
-        // считаем и отобразим обновленные тикеты
-        this.loadTickets();
-      } catch (error) {
-        console.error(error);
-      }
-
+      // изменить статус тикета
+      this.patchTicketStatus(ticket);
     } else if (target.classList.contains('edit-button')) {
       // изменить содержимое тикета
-      console.log('open modal edit for', index);
+      this.openEditTicketModal(ticket);
 
     } else if (target.classList.contains('delete-button')) {
       // удалить тикет
       this.openDeleteModal(index);
     } else {
-      const descriptionElem = ticket.querySelector('.ticket-description');
-      // если уже отображен, то прячем описание
-      if (descriptionElem && descriptionElem.style.display !== 'none') {
-        descriptionElem.style.display = 'none'
-      } else {
-        // получить подробную информацию о тикете
-        const { id } = this.tickets[index];
-        try {
-          const response = await fetch(`${this.url}/?method=ticketById&id=${id}`, {
-            method: 'GET'
-          });
-          if (!response.ok) {
-            throw new Error('Failed to get ticket');
-          }
-          this.tickets[index] = await response.json();
-          this.displayTickets();
-          this.descriptionShown = true;
-        } catch (error) {
-          console.error(error);
-        }
-        this.closeModals();
-      }
+      // читаем полное описание тикета и отображаем
+      const ticketFull = await this.getTicketDescription(ticket);
+      this.tickets[index] = ticketFull;
+      this.displayTickets();
     }
   }
 
@@ -172,8 +183,36 @@ export default class TicketList {
     this.modalBackground.style.display = 'block';
   }
 
+  async openEditTicketModal(ticket) {
+    const index = ticket.getAttribute('data-index');
+    this.indexSelectedTicket = index;
+    const title = this.ticketModal.querySelector('.form-title');
+
+    // прознак редактирования тикета
+    this.ticketModal.setAttribute('data-index', index);;
+
+    // прочитаем полную информацию о тикете
+    const ticketFull = await this.getTicketDescription(ticket);
+
+    title.textContent = 'Изменить тикет';
+    // меняем содержимое формы
+    const nameElem = this.ticketModal.querySelector('.form-input-name');
+    const descriptionElem = this.ticketModal.querySelector('.form-input-description');
+
+    nameElem.value = ticketFull.name;
+    descriptionElem.textContent = ticketFull.description;
+
+    // отображаем форму
+    this.ticketModal.style.display = 'block';
+    this.modalBackground.style.display = 'block';
+
+    // форсируем изменение поля textarea по содержимому
+    let event = new Event("input");
+    descriptionElem.dispatchEvent(event);
+  }
+
   openDeleteModal(index) {
-    this.indexSelectedTicket = index; //e.target.getAttribute('data-index')
+    this.indexSelectedTicket = index;
     this.deleteModal.style.display = 'block';
     this.modalBackground.style.display = 'block';
   }
@@ -203,6 +242,45 @@ export default class TicketList {
     this.indexSelectedTicket = undefined;
   }
 
+  async postTicket(formData) {
+    try {
+      const response = await fetch(`${this.url}/?method=createTicket`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json', 
+        },
+        body: JSON.stringify(formData),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to create ticket');
+      }
+      return true;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async patchTicket(formData, index) {
+    const { id } = this.tickets[index];
+    
+    try {
+      const response = await fetch(`${this.url}/?method=editTicket&id=${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json', 
+        },
+        body: JSON.stringify(formData),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to create ticket');
+      }
+      return true;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+
   #createFormTicket() {
     // Создаем элементы формы
     const form = document.createElement('form');
@@ -216,11 +294,19 @@ export default class TicketList {
     labelName.textContent = 'Краткое описание';
 
     const nameInput = document.createElement('input');
+    nameInput.classList.add('form-input-name');
 
     const labelDescription = document.createElement('label');
     labelDescription.textContent = 'Подробное описание';
 
     const descriptionInput = document.createElement('textarea');
+    descriptionInput.classList.add('form-input-description');
+    function autoResizeTextArea() {
+      this.style.height = 'auto';
+      this.style.height = this.scrollHeight + 'px';
+    }
+    descriptionInput.addEventListener('input', autoResizeTextArea, false);
+ 
 
     const buttonContainer = document.createElement('div');
     buttonContainer.classList.add('button-container');
@@ -260,22 +346,19 @@ export default class TicketList {
           name: nameInput.value,
           description: descriptionInput.value,
         };
-        
-        try {
-          const response = await fetch(`${this.url}/?method=createTicket`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json', 
-            },
-            body: JSON.stringify(formData),
-          });
-          if (!response.ok) {
-            throw new Error('Failed to create ticket');
-          }
-          // считаем и отобразим обновленные тикеты
+
+        // определим по index это изменение или создание нового тикета
+        let res = undefined;
+        const index = this.ticketModal.getAttribute('data-index');
+        if (index) {
+          res = await this.patchTicket(formData, index);
+        } else {
+          res = await this.postTicket(formData);
+        }
+
+        // считаем и отобразим обновленные тикеты
+        if (res) {
           this.loadTickets();
-        } catch (error) {
-          console.error(error);
         }
 
         this.closeModals();
