@@ -49,24 +49,27 @@ export default class TicketList {
       this.onClickTicket = this.onClickTicket.bind(this);
       ticketItem.addEventListener('click', this.onClickTicket);
 
+      // поле для отображения основной информации
+      const mainContainer = document.createElement('div'); 
+      mainContainer.classList.add('main-container');
+
+      // поле для отображения дополнительной информации
+      const extreContainer = document.createElement('div');
+      extreContainer.classList.add('extra-container');
+
       const statusCheckbox = document.createElement('input');
       statusCheckbox.type = 'checkbox';
       statusCheckbox.classList.add('status-checkbox');
       statusCheckbox.checked = ticket.status;
-      // statusCheckbox.setAttribute('data-index', index);
-      // statusCheckbox.addEventListener('change', () => updateStatus(index));
-      ticketItem.appendChild(statusCheckbox);
+      mainContainer.appendChild(statusCheckbox);
 
       const nameSpan = document.createElement('span');
       nameSpan.textContent = ticket.name;
-      ticketItem.appendChild(nameSpan);
+      mainContainer.appendChild(nameSpan);
 
       const dateSpan = document.createElement('span');
       dateSpan.classList.add('ticket-created');
       const date = new Date(ticket.created);
-      console.log(date)
-      // dateSpan.textContent = date.format('dd.mm.yyyy h:m');
-      // dateSpan.textContent = date.toISOString().split('T')[0]
       const day = String(date.getDate()).padStart(2, '0');
       const month = String(date.getMonth() + 1).padStart(2, '0'); // Месяцы начинаются с 0
       const year = String(date.getFullYear()).slice(-2); // Получаем последние две цифры года
@@ -74,30 +77,27 @@ export default class TicketList {
       const minutes = String(date.getMinutes()).padStart(2, '0');
   
       dateSpan.textContent = `${day}.${month}.${year} ${hours}:${minutes}`;
-      ticketItem.appendChild(dateSpan);
+      mainContainer.appendChild(dateSpan);
 
       const editButton = document.createElement('button');
       editButton.textContent = '✎';
       editButton.classList.add('edit-button');
-      // editButton.setAttribute('data-index', index);
-      // editButton.addEventListener('click', () => editTicket(index));
-      ticketItem.appendChild(editButton);
+      mainContainer.appendChild(editButton);
 
       const deleteButton = document.createElement('button');
       deleteButton.textContent = 'x';
       deleteButton.classList.add('delete-button');
-      // deleteButton.setAttribute('data-index', index);
-      // this.openDeleteModal = this.openDeleteModal.bind(this);
-      // deleteButton.addEventListener('click', this.openDeleteModal);
-      ticketItem.appendChild(deleteButton);
+      mainContainer.appendChild(deleteButton);
 
       if (ticket.description) {
-        const descriptionSpan = document.createElement('span');
+        const descriptionSpan = document.createElement('pre');
         descriptionSpan.classList.add('ticket-description');
         descriptionSpan.textContent = ticket.description;
-        ticketItem.appendChild(descriptionSpan);
+        extreContainer.appendChild(descriptionSpan);
       }
 
+      ticketItem.appendChild(mainContainer);
+      ticketItem.appendChild(extreContainer);
       this.ticketList.appendChild(ticketItem);
     });
   }
@@ -109,35 +109,59 @@ export default class TicketList {
     const index = ticket.getAttribute('data-index');
     console.log(target);
 
-    if (target === ticket) {
-      // получить подробную информацию о тикете
-      console.log('GET All for', index);
+    if (target.classList.contains('status-checkbox')) {
+      // изменить стату тикета
       const { id } = this.tickets[index];
+      
       try {
-        const response = await fetch(`${this.url}/?method=ticketById&id=${id}`, {
-          method: 'GET'
+        const response = await fetch(`${this.url}/?method=editTicket&id=${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json', 
+          },
+          body: JSON.stringify({
+            status: !this.tickets[index].status,
+          }),
         });
         if (!response.ok) {
-          throw new Error('Failed to get ticket');
+          throw new Error('Failed to create ticket');
         }
-        this.tickets[index] = await response.json();
-        console.log(this.tickets)
-        this.displayTickets();
+        // считаем и отобразим обновленные тикеты
+        this.loadTickets();
       } catch (error) {
         console.error(error);
       }
-      this.closeModals();
 
-    } else if (target.classList.contains('status-checkbox')) {
-      // изменить стату тикета
-      console.log('POST status', index);
     } else if (target.classList.contains('edit-button')) {
       // изменить содержимое тикета
       console.log('open modal edit for', index);
+
     } else if (target.classList.contains('delete-button')) {
       // удалить тикет
-      console.log('open modal delete for', index);
       this.openDeleteModal(index);
+    } else {
+      const descriptionElem = ticket.querySelector('.ticket-description');
+      // если уже отображен, то прячем описание
+      if (descriptionElem && descriptionElem.style.display !== 'none') {
+        descriptionElem.style.display = 'none'
+      } else {
+        // получить подробную информацию о тикете
+        const { id } = this.tickets[index];
+        try {
+          const response = await fetch(`${this.url}/?method=ticketById&id=${id}`, {
+            method: 'GET'
+          });
+          if (!response.ok) {
+            throw new Error('Failed to get ticket');
+          }
+          this.tickets[index] = await response.json();
+          this.displayTickets();
+          this.descriptionShown = true;
+        } catch (error) {
+          console.error(error);
+        }
+        this.closeModals();
+      }
     }
   }
 
@@ -149,7 +173,6 @@ export default class TicketList {
   }
 
   openDeleteModal(index) {
-    // console.log();
     this.indexSelectedTicket = index; //e.target.getAttribute('data-index')
     this.deleteModal.style.display = 'block';
     this.modalBackground.style.display = 'block';
@@ -230,7 +253,6 @@ export default class TicketList {
     });
 
     okButton.addEventListener('click', async (e) => {
-      console.log('Отправка формы');
       if (form.checkValidity()) {
         e.preventDefault();
 
@@ -250,7 +272,8 @@ export default class TicketList {
           if (!response.ok) {
             throw new Error('Failed to create ticket');
           }
-          this.displayTickets();
+          // считаем и отобразим обновленные тикеты
+          this.loadTickets();
         } catch (error) {
           console.error(error);
         }
