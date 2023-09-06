@@ -16,6 +16,7 @@
     "prepare": "husky install"
   },
   "author": "Unker",
+  "repository": "https://github.com/Unker/help-desk-web.git",
   "license": "MIT",
   "devDependencies": {
     "@babel/cli": "^7.19.3",
@@ -42,5 +43,7 @@
     "webpack-dev-server": "^4.11.1",
     "webpack-merge": "^5.8.0"
   },
-  "repository": "https://github.com/Unker/help-desk-web.git"
+  "dependencies": {
+    "dotenv": "^16.3.1"
+  }
 }

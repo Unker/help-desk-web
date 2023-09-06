@@ -1,5 +1,4 @@
 import './ticket-list.css';
-// import Task from '../../js/Task';
 
 export default class TicketList {
   constructor(url) {
@@ -36,6 +35,7 @@ export default class TicketList {
       this.displayTickets();
     } catch (error) {
       console.error(error);
+      this.ticketList.innerHTML = 'Server connection error'
     }
   }
 
