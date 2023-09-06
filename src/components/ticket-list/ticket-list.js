@@ -35,7 +35,7 @@ export default class TicketList {
       this.displayTickets();
     } catch (error) {
       console.error(error);
-      this.ticketList.innerHTML = 'Server connection error'
+      this.ticketList.innerHTML = 'Server connection error';
     }
   }
 
@@ -50,7 +50,7 @@ export default class TicketList {
       ticketItem.addEventListener('click', this.onClickTicket);
 
       // поле для отображения основной информации
-      const mainContainer = document.createElement('div'); 
+      const mainContainer = document.createElement('div');
       mainContainer.classList.add('main-container');
 
       // поле для отображения дополнительной информации
@@ -75,7 +75,7 @@ export default class TicketList {
       const year = String(date.getFullYear()).slice(-2); // Получаем последние две цифры года
       const hours = String(date.getHours()).padStart(2, '0');
       const minutes = String(date.getMinutes()).padStart(2, '0');
-  
+
       dateSpan.textContent = `${day}.${month}.${year} ${hours}:${minutes}`;
       mainContainer.appendChild(dateSpan);
 
@@ -106,12 +106,12 @@ export default class TicketList {
   async patchTicketStatus(ticket) {
     const index = ticket.getAttribute('data-index');
     const { id } = this.tickets[index];
-      
+
     try {
       const response = await fetch(`${this.url}/?method=editTicket&id=${id}`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json', 
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           status: !this.tickets[index].status,
@@ -134,22 +134,21 @@ export default class TicketList {
     const { id } = this.tickets[index];
     try {
       const response = await fetch(`${this.url}/?method=ticketById&id=${id}`, {
-        method: 'GET'
+        method: 'GET',
       });
       if (!response.ok) {
         throw new Error('Failed to get ticket');
       }
       return response.json();
-
     } catch (error) {
       console.error(error);
+      return null;
     }
-    this.closeModals();
-
+    // this.closeModals();
   }
 
   async onClickTicket(e) {
-    e.preventDefault()
+    e.preventDefault();
     const { target } = e;
     const ticket = target.closest('.ticket-item');
     const index = ticket.getAttribute('data-index');
@@ -160,7 +159,6 @@ export default class TicketList {
     } else if (target.classList.contains('edit-button')) {
       // изменить содержимое тикета
       this.openEditTicketModal(ticket);
-
     } else if (target.classList.contains('delete-button')) {
       // удалить тикет
       this.openDeleteModal(index);
@@ -172,7 +170,7 @@ export default class TicketList {
         const descriptionElem = ticket.querySelector('.ticket-description');
         // если уже отображен, то прячем описание
         if (descriptionElem && descriptionElem.style.display !== 'none') {
-          descriptionElem.style.display = 'none'
+          descriptionElem.style.display = 'none';
         } else {
           this.displayTickets();
         }
@@ -193,7 +191,7 @@ export default class TicketList {
     descriptionElem.value = '';
 
     // форсируем изменение поля textarea по содержимому
-    let event = new Event("input");
+    const event = new Event('input');
     descriptionElem.dispatchEvent(event);
   }
 
@@ -221,7 +219,7 @@ export default class TicketList {
     this.modalBackground.style.display = 'block';
 
     // форсируем изменение поля textarea по содержимому
-    let event = new Event("input");
+    const event = new Event('input');
     descriptionElem.dispatchEvent(event);
   }
 
@@ -236,7 +234,7 @@ export default class TicketList {
     const { id } = this.tickets[index];
     try {
       const response = await fetch(`${this.url}/?method=deleteTicket&id=${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       });
       if (!response.ok) {
         throw new Error('Failed to delete ticket');
@@ -263,7 +261,7 @@ export default class TicketList {
       const response = await fetch(`${this.url}/?method=createTicket`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json', 
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
       });
@@ -273,17 +271,18 @@ export default class TicketList {
       return true;
     } catch (error) {
       console.error(error);
+      return false;
     }
   }
 
   async patchTicket(formData, index) {
     const { id } = this.tickets[index];
-    
+
     try {
       const response = await fetch(`${this.url}/?method=editTicket&id=${id}`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json', 
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
       });
@@ -293,9 +292,9 @@ export default class TicketList {
       return true;
     } catch (error) {
       console.error(error);
+      return false;
     }
   }
-
 
   #createFormTicket() {
     // Создаем элементы формы
@@ -320,10 +319,9 @@ export default class TicketList {
     descriptionInput.classList.add('form-input-description');
     function autoResizeTextArea() {
       this.style.height = 'auto';
-      this.style.height = this.scrollHeight + 'px';
+      this.style.height = `${this.scrollHeight} px`;
     }
     descriptionInput.addEventListener('input', autoResizeTextArea, false);
- 
 
     const buttonContainer = document.createElement('div');
     buttonContainer.classList.add('button-container');
@@ -358,14 +356,13 @@ export default class TicketList {
     okButton.addEventListener('click', async (e) => {
       e.preventDefault();
       if (form.checkValidity()) {
-
         const formData = {
           name: nameInput.value,
           description: descriptionInput.value,
         };
 
         // определим по index это изменение или создание нового тикета
-        let res = undefined;
+        let res;
         const index = this.ticketModal.getAttribute('data-index');
         if (index) {
           res = await this.patchTicket(formData, index);
